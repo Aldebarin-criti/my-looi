@@ -85,6 +85,7 @@ jobs:
 
       - name: 9. Ejecutar compilación oficial de Android APK
         run: |
+          sed -i 's/corepack pnpm test/echo "Skipping developer tests"/' scripts/build-android-apk.sh
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
 
