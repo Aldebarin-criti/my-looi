@@ -17,12 +17,13 @@ jobs:
       - name: 1. Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Restaurar módulos originales de src
+      - name: 2. Restaurar módulos originales y aplicar interfaz en español
         run: |
           git clone --depth 1 https://github.com/razor79/my-looi.git /tmp/upstream-looi
           for dir in /tmp/upstream-looi/src/*/; do
             name=$(basename "$dir")
-            if [ "$name" != "i18n" ] && [ "$name" != "language" ]; then
+            if [ "$name" != "i18n" ]; then
+              rm -rf "src/$name"
               cp -r "$dir" src/
             fi
           done
