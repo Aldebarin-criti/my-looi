@@ -25,7 +25,8 @@ export type DiagnosticCategory =
   | "robot"
   | "update"
   | "diagnostic"
-  | "performance";
+  | "performance"
+  | "assistant";
 
 export type DiagnosticValue = string | number | boolean | null | undefined;
 export type DiagnosticDetails = Record<string, DiagnosticValue>;

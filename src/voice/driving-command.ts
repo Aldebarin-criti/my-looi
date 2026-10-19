@@ -25,6 +25,7 @@ function stripFillers(text: string, language: ListeningLanguage): string {
     ru: /^(?:(?:ну|давай|да|ага|эй|ой|пожалуйста|быстро|сейчас|уже|робот|луи|луй|макс|max|уи|уй)\s+)*/u,
     uk: /^(?:(?:ну|давай|так|ага|ей|ой|будь\s+ласка|швидко|зараз|вже|робот|луї|луі|макс|max)\s+)*/u,
     en: /^(?:(?:well|okay|ok|hey|please|quickly|now|already|robot|looi|louie|max)\s+)*/u,
+    es: /^(?:(?:bueno|vale|oye|porfa|por\s+favor|rápido|ya|ahora|robot|looi|luui|max)\s+)*/u,
   };
   return text.replace(fillers[language], "").trim();
 }
@@ -55,12 +56,15 @@ export function parseDrivingCommandTranscript(
   if (/^(?:done|finish\s+driving|stop\s+driving|normal\s+mode|conversation\s+mode|let'?s\s+talk)$/u.test(normalized)) {
     return { kind: "exit" };
   }
+  if (/^(?:ya\s+está|terminamos|deja\s+de\s+conducir|modo\s+normal|modo\s+conversación|hablemos)$/u.test(normalized)) {
+    return { kind: "exit" };
+  }
 
   // STOP is deliberately broad and multilingual. During a local control
   // session, an accidental stop is much safer than an ignored emergency command.
   const padded = ` ${normalized} `;
   if (
-    /(?:^|\s)(?:стоп|стой|стій|stop|halt|замри|завмри|тормози|гальмуй|остановись|останови|зупинись|зупини|хватит|досить|достаточно|не\s+надо|не\s+треба|freeze|brake|enough|hold)(?:$|\s)/u.test(
+    /(?:^|\s)(?:стоп|стой|стій|stop|halt|замри|завмри|тормози|гальмуй|остановись|останови|зупинись|зупини|хватит|досить|достаточно|не\s+надо|не\s+треба|freeze|brake|enough|hold|para|alto|detente|párate|frena|basta)(?:$|\s)/u.test(
       padded
     )
   ) {
@@ -162,6 +166,46 @@ export function parseDrivingCommandTranscript(
       return { kind: "light", enabled: true };
     }
     if (/^(?:вимкни\s+світло|світло\s+вимкни)$/u.test(compact)) {
+      return { kind: "light", enabled: false };
+    }
+  } else if (language === "es") {
+    if (/^(?:date\s+la\s+vuelta|media\s+vuelta|gira\s+ciento\s+ochenta|da\s+la\s+vuelta)$/u.test(compact)) {
+      return { kind: "turn", direction: "right", degrees: 180 };
+    }
+    if (/^(?:adelante|avanza|ve\s+adelante|avanza\s+recto|recto|hacia\s+adelante)$/u.test(compact)) {
+      return { kind: "move", direction: "forward" };
+    }
+    if (/^(?:atrás|retrocede|marcha\s+atrás|ve\s+atrás|hacia\s+atrás)$/u.test(compact)) {
+      return { kind: "move", direction: "backward" };
+    }
+    if (/^(?:izquierda|gira\s+a\s+la\s+izquierda|ve\s+a\s+la\s+izquierda)$/u.test(compact)) {
+      return { kind: "turn", direction: "left", degrees: 90 };
+    }
+    if (/^(?:derecha|gira\s+a\s+la\s+derecha|ve\s+a\s+la\s+derecha)$/u.test(compact)) {
+      return { kind: "turn", direction: "right", degrees: 90 };
+    }
+    if (/^(?:asiente|di\s+que\s+sí|afirma\s+con\s+la\s+cabeza)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 1 };
+    }
+    if (/^(?:asiente\s+(?:dos|2)\s+veces)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 2 };
+    }
+    if (/^(?:asiente\s+(?:tres|3)\s+veces)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "nod", count: 3 };
+    }
+    if (/^(?:mueve\s+la\s+cabeza|balancea\s+la\s+cabeza)$/u.test(compact)) {
+      return { kind: "gesture", gesture: "happy_bob", count: 1 };
+    }
+    if (/^(?:baila|bailar|un\s+baile|baila\s+para\s+mí|ponte\s+a\s+bailar)$/u.test(compact)) {
+      return { kind: "dance" };
+    }
+    if (/^(?:duerme|duérmete|a\s+dormir|vete\s+a\s+dormir)$/u.test(compact)) {
+      return { kind: "sleep" };
+    }
+    if (/^(?:enciende\s+la\s+luz|luz\s+encendida|ilumina)$/u.test(compact)) {
+      return { kind: "light", enabled: true };
+    }
+    if (/^(?:apaga\s+la\s+luz|luz\s+apagada)$/u.test(compact)) {
       return { kind: "light", enabled: false };
     }
   } else {

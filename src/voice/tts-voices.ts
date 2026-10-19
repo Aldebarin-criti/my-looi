@@ -64,6 +64,7 @@ const TTS_PREVIEW_TEXT = {
   ru: "Привет! Вот так теперь звучит мой голос.",
   uk: "Привіт! Ось так тепер звучить мій голос.",
   en: "Hi! This is how my voice sounds now.",
+  es: "¡Hola! Así suena ahora mi voz.",
 } as const;
 
 export function getTtsPreviewText(language: keyof typeof TTS_PREVIEW_TEXT): string {

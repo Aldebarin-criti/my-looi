@@ -6,6 +6,7 @@ export type CharacterMood =
   | "pleased"
   | "annoyed"
   | "angry"
+  | "happy"
   | "victory";
 
 type CharacterReactionState = {
