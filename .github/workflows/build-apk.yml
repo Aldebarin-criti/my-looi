@@ -17,33 +17,44 @@ jobs:
       - name: 1. Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Java 17 (Temurin)
+      - name: 2. Restaurar módulos originales de src
+        run: |
+          git clone --depth 1 https://github.com/razor79/my-looi.git /tmp/upstream-looi
+          for dir in /tmp/upstream-looi/src/*/; do
+            name=$(basename "$dir")
+            if [ "$name" != "i18n" ] && [ "$name" != "language" ]; then
+              cp -r "$dir" src/
+            fi
+          done
+          rm -rf /tmp/upstream-looi
+
+      - name: 3. Configurar Java 17 (Temurin)
         uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "17"
 
-      - name: 3. Aceptar licencias del Android SDK
+      - name: 4. Aceptar licencias del Android SDK
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: 4. Instalar pnpm
+      - name: 5. Instalar pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 10.34.5
 
-      - name: 5. Configurar Node.js 22
+      - name: 6. Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
-      - name: 6. Instalar dependencias del proyecto
+      - name: 7. Instalar dependencias del proyecto
         run: |
           corepack enable
           corepack pnpm install --frozen-lockfile
 
-      - name: 7. Generar Keystore de firma Release
+      - name: 8. Generar Keystore de firma Release
         run: |
           mkdir -p "$HOME/.config/my-looi/signing"
           KEYSTORE_PATH="$HOME/.config/my-looi/signing/my-looi-release.keystore"
@@ -71,12 +82,12 @@ jobs:
           echo "MY_LOOI_RELEASE_KEY_ALIAS=my-looi-release" >> "$GITHUB_ENV"
           echo "MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026" >> "$GITHUB_ENV"
 
-      - name: 8. Ejecutar compilación oficial de Android APK
+      - name: 9. Ejecutar compilación oficial de Android APK
         run: |
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
 
-      - name: 9. Subir APK terminado como artefacto descargable
+      - name: 10. Subir APK terminado como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
           name: My-LOOI-v2.1-Espanol-APK
@@ -84,4 +95,3 @@ jobs:
             output/android/*.apk
             android/app/build/outputs/apk/release/*.apk
           retention-days: 30
-          
