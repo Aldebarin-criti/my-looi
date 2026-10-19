@@ -1,7 +1,7 @@
 name: Compilar My LOOI APK (Español)
 
 on:
-  workflow_dispatch: # Botón manual en la pestaña Actions de GitHub
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -23,31 +23,27 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: 3. Configurar Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 4. Instalar componentes Android Build Tools
+      - name: 3. Aceptar licencias del Android SDK
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "build-tools;36.0.0" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: 5. Instalar pnpm
+      - name: 4. Instalar pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 10.34.5
 
-      - name: 6. Configurar Node.js 22
+      - name: 5. Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
-      - name: 7. Instalar dependencias del proyecto
+      - name: 6. Instalar dependencias del proyecto
         run: |
           corepack enable
           corepack pnpm install --frozen-lockfile
 
-      - name: 8. Generar Keystore de firma Release
+      - name: 7. Generar Keystore de firma Release
         run: |
           mkdir -p ~/.config/my-looi/signing
           KEYSTORE_PATH="$HOME/.config/my-looi/signing/my-looi-release.keystore"
@@ -70,12 +66,12 @@ jobs:
           EOF
           chmod 600 ~/.config/my-looi/signing/release.env
 
-      - name: 9. Ejecutar compilación oficial de Android APK
+      - name: 8. Ejecutar compilación oficial de Android APK
         run: |
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
 
-      - name: 10. Subir APK terminado como artefacto descargable
+      - name: 9. Subir APK terminado como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
           name: My-LOOI-v2.1-Espanol-APK
