@@ -478,6 +478,12 @@ function getCharacterFace(mood: CharacterMood): FaceVisual {
         leftEyeOffsetY: -2, rightEyeOffsetY: -2, leftEyeRotation: -3, rightEyeRotation: 3,
         mouth: "smile", mouthWidth: 40,
       };
+    case "happy":
+      return {
+        leftEyeScaleX: 1.06, leftEyeScaleY: 0.72, rightEyeScaleX: 1.06, rightEyeScaleY: 0.72,
+        leftEyeOffsetY: 1, rightEyeOffsetY: 1, leftEyeRotation: 0, rightEyeRotation: 0,
+        mouth: "smile", mouthWidth: 38,
+      };
   }
 }
 
