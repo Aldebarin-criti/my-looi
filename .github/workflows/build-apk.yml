@@ -1,0 +1,85 @@
+name: Compilar My LOOI APK (Español)
+
+on:
+  workflow_dispatch: # Botón manual en la pestaña Actions de GitHub
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Compilación APK Android Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 1. Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: 3. Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 4. Instalar componentes Android Build Tools
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-34" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "build-tools;36.0.0" || true
+
+      - name: 5. Instalar pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.34.5
+
+      - name: 6. Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: 7. Instalar dependencias del proyecto
+        run: |
+          corepack enable
+          corepack pnpm install --frozen-lockfile
+
+      - name: 8. Generar Keystore de firma Release
+        run: |
+          mkdir -p ~/.config/my-looi/signing
+          KEYSTORE_PATH="$HOME/.config/my-looi/signing/my-looi-release.keystore"
+          
+          keytool -genkey -v \
+            -keystore "$KEYSTORE_PATH" \
+            -alias my-looi-release \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "MyLooiPassword2026" \
+            -keypass "MyLooiPassword2026" \
+            -dname "CN=My Looi Robot, OU=Community, O=Looi, L=Madrid, ST=Madrid, C=ES"
+
+          cat << 'EOF' > ~/.config/my-looi/signing/release.env
+          MY_LOOI_RELEASE_KEYSTORE=$HOME/.config/my-looi/signing/my-looi-release.keystore
+          MY_LOOI_RELEASE_STORE_PASSWORD=MyLooiPassword2026
+          MY_LOOI_RELEASE_KEY_ALIAS=my-looi-release
+          MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026
+          EOF
+          chmod 600 ~/.config/my-looi/signing/release.env
+
+      - name: 9. Ejecutar compilación oficial de Android APK
+        run: |
+          chmod +x scripts/*.sh || true
+          bash scripts/build-android-apk.sh
+
+      - name: 10. Subir APK terminado como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-LOOI-v2.1-Espanol-APK
+          path: |
+            output/android/*.apk
+            android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
