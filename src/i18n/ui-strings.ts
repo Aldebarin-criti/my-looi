@@ -1,4 +1,5 @@
 import type { InterfaceLanguage } from "./ui-language";
+import es from "./ui-strings-es";
 
 type Params = Record<string, string | number>;
 
@@ -1196,7 +1197,7 @@ const ru: TranslationTable = {
   "voice.sage": "Голос OpenAI — сравни через Preview",
 };
 
-const tables: Record<InterfaceLanguage, TranslationTable> = { uk, en, ru };
+const tables: Record<InterfaceLanguage, TranslationTable> = { uk, en, ru, es };
 
 export function uiText(language: InterfaceLanguage, key: UiStringKey, params?: Params): string {
   let text = tables[language][key] ?? en[key];
@@ -1225,4 +1226,4 @@ export function getLocalizedVoiceDescription(language: InterfaceLanguage, voiceI
   return key in tables[language] ? tables[language][key] : fallback;
 }
 
-export type { UiStringKey };
+export type { UiStringKey, TranslationTable };
