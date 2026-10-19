@@ -72,11 +72,6 @@ jobs:
           echo "MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026" >> "$GITHUB_ENV"
 
       - name: 8. Ejecutar compilación oficial de Android APK
-        env:
-          MY_LOOI_RELEASE_KEYSTORE: /home/runner/.config/my-looi/signing/my-looi-release.keystore
-          MY_LOOI_RELEASE_STORE_PASSWORD: MyLooiPassword2026
-          MY_LOOI_RELEASE_KEY_ALIAS: my-looi-release
-          MY_LOOI_RELEASE_KEY_PASSWORD: MyLooiPassword2026
         run: |
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
