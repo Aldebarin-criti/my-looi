@@ -72,8 +72,17 @@ jobs:
           echo "MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026" >> "$GITHUB_ENV"
 
       - name: 9. Ejecutar compilación oficial de Android APK
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2"
+          JAVA_OPTS: "-Xmx4g"
         run: |
+          # Saltar tests
           sed -i 's/corepack pnpm test/echo "Skipping developer tests"/' scripts/build-android-apk.sh
+
+          # Forzar más heap y menos workers en ambas invocaciones de gradlew
+          sed -i 's|./gradlew --no-daemon --build-cache :app:assembleRelease|./gradlew --no-daemon --build-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" :app:assembleRelease|' scripts/build-android-apk.sh
+          sed -i 's|./gradlew --no-daemon :app:assembleRelease|./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" :app:assembleRelease|' scripts/build-android-apk.sh
+
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
 
