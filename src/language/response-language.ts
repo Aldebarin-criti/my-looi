@@ -1,4 +1,4 @@
-export type ResponseLanguage = "ru" | "uk" | "en";
+export type ResponseLanguage = "ru" | "uk" | "en" | "es";
 
 export const DEFAULT_RESPONSE_LANGUAGE: ResponseLanguage = "ru";
 
@@ -10,17 +10,18 @@ export const RESPONSE_LANGUAGE_OPTIONS: ReadonlyArray<{
   { id: "ru", shortLabel: "RU", label: "Русский" },
   { id: "uk", shortLabel: "UA", label: "Українська" },
   { id: "en", shortLabel: "EN", label: "English" },
+  { id: "es", shortLabel: "ES", label: "Español" },
 ];
 
-const DIRECT_SWITCH_COMMAND_RE = /^(?:говори|разговаривай|отвечай|ответь|розмовляй|спілкуйся|відповідай|speak|talk|reply|respond)(?=$|\s)/u;
+const DIRECT_SWITCH_COMMAND_RE = /^(?:говори|разговаривай|отвечай|ответь|розмовляй|спілкуйся|відповідай|habla|responde|contesta|speak|talk|reply|respond)(?=$|\s)/u;
 
-const POLITE_SWITCH_COMMAND_RE = /^(?:(?:можешь|можеш|чи\s+можеш|can\s+you|could\s+you)(?:\s+(?:пожалуйста|будь\s+ласка|please|теперь|відтепер|now))*\s+)(?:говорить|разговаривать|отвечать|говорити|спілкуватися|відповідати|speak|talk|reply|respond)(?=$|\s)/u;
+const POLITE_SWITCH_COMMAND_RE = /^(?:(?:можешь|можеш|чи\s+можеш|puedes|podrías|can\s+you|could\s+you)(?:\s+(?:пожалуйста|будь\s+ласка|por\s+favor|please|теперь|відтепер|now))*\s+)(?:говорить|разговаривать|отвечать|говорити|спілкуватися|відповідати|hablar|responder|contestar|speak|talk|reply|respond)(?=$|\s)/u;
 
-const RESPONSE_SETTING_COMMAND_RE = /^(?:переключи|смени|поменяй|выбери|зміни|перемкни|обери|switch|change|set)\s+(?:язык\s+ответов|мову\s+відповідей|response\s+language)(?=$|\s)/u;
+const RESPONSE_SETTING_COMMAND_RE = /^(?:переключи|смени|поменяй|выбери|зміни|перемкни|обери|cambia|pon|switch|change|set)\s+(?:язык\s+ответов|мову\s+відповідей|(?:el\s+)?idioma(?:\s+de\s+respuestas?)?|response\s+language)(?=$|\s)/u;
 
-const COMMAND_LEADING_MODIFIER_RE = /^(?:пожалуйста|будь\s+ласка|please|теперь|отныне|відтепер|надалі|now|from\s+now\s+on)(?=$|\s)/u;
+const COMMAND_LEADING_MODIFIER_RE = /^(?:пожалуйста|будь\s+ласка|por\s+favor|please|теперь|отныне|відтепер|надалі|ahora|now|from\s+now\s+on)(?=$|\s)/u;
 
-const TARGET_MODIFIER_RE = /^(?:пожалуйста|будь\s+ласка|please|теперь|отныне|відтепер|надалі|now|from\s+now\s+on|со\s+мной|зі\s+мною|with\s+me)(?=$|\s)/u;
+const TARGET_MODIFIER_RE = /^(?:пожалуйста|будь\s+ласка|por\s+favor|please|теперь|отныне|відтепер|надалі|ahora|now|from\s+now\s+on|со\s+мной|зі\s+мною|conmigo|with\s+me)(?=$|\s)/u;
 
 const LANGUAGE_TARGETS: Array<{
   language: ResponseLanguage;
@@ -38,10 +39,14 @@ const LANGUAGE_TARGETS: Array<{
     language: "en",
     pattern: /^(?:(?:(?:язык(?:\s+ответов)?|мову(?:\s+відповідей)?|(?:response\s+)?language)\s+(?:на|to)\s+)?(?:английский(?:\s+язык)?|англійську(?:\s+мову)?|english)|по[-\s]?английски|на\s+английском(?:\s+языке)?|на\s+английский(?:\s+язык)?|англійською|на\s+англійську(?:\s+мову)?|англійська(?:\s+мова)?|in\s+english|to\s+english)(?:\s+(?:пожалуйста|будь\s+ласка|please))?$/u,
   },
+  {
+    language: "es",
+    pattern: /^(?:(?:(?:язык(?:\s+ответов)?|мову(?:\s+відповідей)?|(?:response\s+)?language)\s+(?:на|to)\s+)?(?:español|castellano|spanish)|en\s+español|en\s+castellano|in\s+spanish|to\s+spanish)(?:\s+(?:por\s+favor|please))?$/u,
+  },
 ];
 
 export function normalizeResponseLanguage(value: unknown): ResponseLanguage {
-  return value === "uk" || value === "en" || value === "ru"
+  return value === "uk" || value === "en" || value === "ru" || value === "es"
     ? value
     : DEFAULT_RESPONSE_LANGUAGE;
 }
@@ -80,11 +85,13 @@ export function detectLanguageSwitchCommand(transcript: string): ResponseLanguag
 export function getLanguageSwitchAcknowledgement(language: ResponseLanguage): string {
   if (language === "uk") return "Добре, говоритиму українською.";
   if (language === "en") return "Okay, I'll speak English.";
+  if (language === "es") return "Vale, hablaré en español.";
   return "Хорошо, буду говорить по-русски.";
 }
 
 export function getResponseLanguageName(language: ResponseLanguage): string {
   if (language === "uk") return "Ukrainian";
   if (language === "en") return "English";
+  if (language === "es") return "Spanish";
   return "Russian";
 }
