@@ -196,7 +196,7 @@ function RootLayoutNav() {
     import('@/src/setup/setup-readiness')
       .then(({ computeSetupReadiness }) => computeSetupReadiness())
       .then((readiness) => {
-        if (cancelled || readiness.requiredReady) return;
+        if (cancelled || readiness.requiredReady || readiness.onboardingCompleted) return;
         if (currentRoot === 'onboarding') return;
         router.replace(`/onboarding?step=${readiness.nextStep}` as never);
       })

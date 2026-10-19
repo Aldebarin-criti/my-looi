@@ -166,17 +166,12 @@ export default function OnboardingScreen() {
   }, [refreshReadiness]);
 
   const finishOnboarding = useCallback(async () => {
-    const next = await refreshReadiness();
-    if (!next.requiredReady) {
-      goToStep(next.nextStep);
-      return;
-    }
     setOnboardingCompleted(true);
     await syncVoiceRuntime().catch(() => undefined);
     router.replace("/");
-  }, [goToStep, refreshReadiness, router]);
+  }, [router]);
 
-  const canFinish = readiness?.requiredReady ?? false;
+  const canFinish = Boolean(readiness?.modelsReady && readiness?.microphoneReady) || (readiness?.requiredReady ?? false);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -239,6 +234,7 @@ export default function OnboardingScreen() {
               {openAiError ? <Text style={styles.error}>{openAiError}</Text> : null}
               <View style={styles.actions}>
                 <PrimaryButton label={openAiBusy ? t("onboarding.saving") : readiness?.openAiKeyConfigured ? t("onboarding.replaceKey") : t("onboarding.saveKey")} onPress={saveOpenAiKey} disabled={openAiBusy || !openAiKeyInput.trim()} />
+                {!readiness?.openAiKeyConfigured ? <SecondaryButton label="Omitir (Modo N8N / Asistente)" onPress={() => goToStep("models")} /> : null}
                 {readiness?.openAiKeyConfigured ? <SecondaryButton label={t("onboarding.deleteKey")} onPress={replaceOpenAiKey} /> : null}
                 {readiness?.openAiKeyConfigured ? <SecondaryButton label={t("common.continue")} onPress={() => goToStep("models")} /> : null}
               </View>
