@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 2. Configurar Java 17 (Temurin)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "17"
@@ -45,7 +45,7 @@ jobs:
 
       - name: 7. Generar Keystore de firma Release
         run: |
-          mkdir -p ~/.config/my-looi/signing
+          mkdir -p "$HOME/.config/my-looi/signing"
           KEYSTORE_PATH="$HOME/.config/my-looi/signing/my-looi-release.keystore"
           
           keytool -genkey -v \
@@ -58,15 +58,25 @@ jobs:
             -keypass "MyLooiPassword2026" \
             -dname "CN=My Looi Robot, OU=Community, O=Looi, L=Madrid, ST=Madrid, C=ES"
 
-          cat << 'EOF' > ~/.config/my-looi/signing/release.env
-          MY_LOOI_RELEASE_KEYSTORE=$HOME/.config/my-looi/signing/my-looi-release.keystore
+          cat << EOF > "$HOME/.config/my-looi/signing/release.env"
+          MY_LOOI_RELEASE_KEYSTORE=$KEYSTORE_PATH
           MY_LOOI_RELEASE_STORE_PASSWORD=MyLooiPassword2026
           MY_LOOI_RELEASE_KEY_ALIAS=my-looi-release
           MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026
           EOF
-          chmod 600 ~/.config/my-looi/signing/release.env
+          chmod 600 "$HOME/.config/my-looi/signing/release.env"
+
+          echo "MY_LOOI_RELEASE_KEYSTORE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "MY_LOOI_RELEASE_STORE_PASSWORD=MyLooiPassword2026" >> "$GITHUB_ENV"
+          echo "MY_LOOI_RELEASE_KEY_ALIAS=my-looi-release" >> "$GITHUB_ENV"
+          echo "MY_LOOI_RELEASE_KEY_PASSWORD=MyLooiPassword2026" >> "$GITHUB_ENV"
 
       - name: 8. Ejecutar compilación oficial de Android APK
+        env:
+          MY_LOOI_RELEASE_KEYSTORE: /home/runner/.config/my-looi/signing/my-looi-release.keystore
+          MY_LOOI_RELEASE_STORE_PASSWORD: MyLooiPassword2026
+          MY_LOOI_RELEASE_KEY_ALIAS: my-looi-release
+          MY_LOOI_RELEASE_KEY_PASSWORD: MyLooiPassword2026
         run: |
           chmod +x scripts/*.sh || true
           bash scripts/build-android-apk.sh
