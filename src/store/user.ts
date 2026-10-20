@@ -159,12 +159,18 @@ export function normalizeAmbientMotionLevel(value: unknown): AmbientMotionLevel 
   return value === "off" || value === "subtle" || value === "normal" || value === "lively" ? value : "normal";
 }
 
+import { hasOpenAiApiKeySync } from "../openai/openai-api-key";
+
 export function isRealtimeConversationMode(mode: ConversationMode): boolean {
+  // Sin clave OpenAI, nunca activar modo Realtime — usar pipeline clásico (N8N)
+  if (!hasOpenAiApiKeySync()) return false;
   return mode === "realtime" || mode === "realtime_pcm";
 }
 
 
 export function isPcmRealtimeMode(mode: ConversationMode): boolean {
+  // Sin clave OpenAI, nunca activar modo PCM Realtime
+  if (!hasOpenAiApiKeySync()) return false;
   return mode === "realtime_pcm";
 }
 

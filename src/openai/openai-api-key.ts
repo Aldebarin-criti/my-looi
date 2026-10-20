@@ -50,6 +50,15 @@ export async function hasOpenAiApiKey(): Promise<boolean> {
   return Boolean(await getOpenAiApiKey());
 }
 
+/**
+ * Versión síncrona: devuelve el estado cacheado de la clave.
+ * Devuelve false si la clave aún no se ha cargado o no existe.
+ * Llamar a hasOpenAiApiKey() o getOpenAiApiKey() primero para poblar la caché.
+ */
+export function hasOpenAiApiKeySync(): boolean {
+  return cachedKey !== undefined && cachedKey !== null && cachedKey.length > 0;
+}
+
 export async function saveOpenAiApiKey(value: string): Promise<void> {
   const key = validateOpenAiApiKey(value);
   await SecureStore.setItemAsync(OPENAI_API_KEY_STORAGE_KEY, key);

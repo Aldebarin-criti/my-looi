@@ -17,6 +17,7 @@ import {
 } from "../device-tools/looi-robot-autoconnect";
 import { removeRetiredExperimentalVoiceAssets } from "../voice/retired-experimental-voice-assets";
 import { retireLegacyNetworkCredentials } from "./legacy-network-credentials-retirement";
+import { getOpenAiApiKey } from "../openai/openai-api-key";
 import { startAmbientMotionController, stopAmbientMotionController } from "./ambient-motion";
 import { startSocialAttentionController, stopSocialAttentionController } from "./social-attention";
 
@@ -58,6 +59,11 @@ export async function bootstrapApp(): Promise<void> {
       error: error instanceof Error ? error.message : String(error),
     });
   });
+
+  // Pre-cargar la clave OpenAI en caché ANTES de iniciar el voice pipeline.
+  // Esto permite que hasOpenAiApiKeySync() devuelva el valor correcto
+  // cuando isRealtimeConversationMode() lo consulte.
+  await getOpenAiApiKey().catch(() => undefined);
 
   const bootSleeping = useUserStore.getState().robotSleeping;
   if (bootSleeping) {
