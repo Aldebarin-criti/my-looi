@@ -759,7 +759,11 @@ export class VoicePerceiver extends BasePerceiver {
     }
     const finalStatus = kwsAudioFeeder.diagnosticStatus;
     if (isRealtimeConversationMode(preferences.conversationMode)) {
-      useConversationStore.getState().setRealtimeReadiness("connecting");
+      // Solo mostrar "connecting" si hay clave OpenAI; sin clave se usa N8N
+      const hasKeyForRealtime = await hasOpenAiApiKey().catch(() => false);
+      if (hasKeyForRealtime) {
+        useConversationStore.getState().setRealtimeReadiness("connecting");
+      }
     }
     recordDiagnosticEvent("runtime", "realtime-entry-auto-listen", {
       source: triggerSource,
@@ -991,6 +995,10 @@ export class VoicePerceiver extends BasePerceiver {
     }
 
     const hasKey = await hasOpenAiApiKey().catch(() => false);
+    // Sin clave OpenAI: limpiar estado "connecting" y usar pipeline clásico (N8N)
+    if (!hasKey && isRealtimeConversationMode(userStore.preferences.conversationMode)) {
+      useConversationStore.getState().setRealtimeReadiness("idle");
+    }
     if (hasKey && isRealtimeConversationMode(userStore.preferences.conversationMode)) {
       recordDiagnosticEvent("runtime", "main-wake-accepted", {
         source: detection?.source ?? "manual",
