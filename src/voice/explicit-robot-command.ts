@@ -4,7 +4,8 @@ export type ExplicitRobotCommand =
   | { kind: "turn"; direction: "left" | "right"; degrees: 90 | 180 }
   | { kind: "sleep" }
   | { kind: "dance" }
-  | { kind: "gesture"; gesture: "nod"; count: number };
+  | { kind: "gesture"; gesture: "nod"; count: number }
+  | { kind: "cat_play" };
 
 export type ExplicitRobotCommandConfig = {
   robotName?: string;
@@ -136,6 +137,10 @@ export function parseExplicitRobotCommand(text: string, config?: ExplicitRobotCo
   const command = stripNaturalCommandLeadIns(addressed.command.trim().toLowerCase());
   const customAction = customActionFor(command, config);
   if (customAction) return commandFromCustomAction(customAction, command);
+
+  if (/(?:^|\s)(?:juega\s+con\s+(?:el|los)\s+gatos?|modo\s+gato|busca\s+al\s+gato|persigue\s+al\s+gato|caza\s+al\s+gato|juego\s+de\s+gatos?|a\s+por\s+el\s+gato)(?=$|[\s.,!?])/iu.test(command)) {
+    return { kind: "cat_play" };
+  }
 
   if (/(?:^|\s)(?:спи|спать|засни|засыпай|иди\s+спать|ложись\s+спать|засинай|спати|іди\s+спати|sleep|go\s+to\s+sleep|fall\s+asleep|duérmete|duermete|a\s+dormir|duerme)(?=$|[\s.,!?])/iu.test(command)) {
     return { kind: "sleep" };

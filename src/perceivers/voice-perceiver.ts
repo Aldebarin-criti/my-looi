@@ -41,6 +41,8 @@ import { markRobotInteraction } from "../core/robot-inactivity";
 import { triggerCharacterReaction } from "../character/character-reaction";
 import { realtimeConversationService } from "../voice/realtime-conversation";
 import { normalizeConversationTranscriptForAssistant } from "../voice/conversation-address";
+import { playR2D2Sound } from "../voice/r2d2-sounds";
+import { startCatPlayMode, stopCatPlayMode, isCatPlayActive } from "../games/cat-chaser";
 
 const LISTENING_START_TIMEOUT_MS = 5000;
 const MAX_LISTENING_DURATION_MS = 27_000;
@@ -300,7 +302,10 @@ export class VoicePerceiver extends BasePerceiver {
     // interpreted as "start a conversation". It is an immediate local STOP.
     // This gives the user a deterministic escape hatch if voice recognition
     // misses an emergency command.
-    if (getLooiRobotRuntimeState().motionActive) {
+    if (getLooiRobotRuntimeState().motionActive || isCatPlayActive()) {
+      if (isCatPlayActive()) {
+        stopCatPlayMode("tap-stop");
+      }
       const startedAt = Date.now();
       recordDiagnosticEvent("robot", "driving-tap-emergency-stop", {
         direction: getLooiRobotRuntimeState().activeDirection ?? "unknown",
@@ -1038,6 +1043,7 @@ export class VoicePerceiver extends BasePerceiver {
     conversationStore.setCurrentTranscript("");
     conversationStore.setStreamingText("");
     conversationStore.setOverlayVisible(true);
+    void playR2D2Sound("chirp");
 
     // Fire-and-forget: session ID doesn't affect recording/ASR,
     // only message attribution. Update store when result arrives.
@@ -1295,9 +1301,12 @@ export class VoicePerceiver extends BasePerceiver {
       // delayed physical stop. Native KWS provides an even earlier parallel path.
       if (containsEmergencyStopWord(rawTranscript, explicitCommandConfig)) {
         const stopStartedAt = Date.now();
+        stopCatPlayMode("voice-emergency-stop");
         await stopLooiMotion("voice-emergency-transcript");
         const responseLanguage = useUserStore.getState().preferences.language;
-        const acknowledgement = responseLanguage === "en"
+        const acknowledgement = responseLanguage === "es"
+          ? "Detenido."
+          : responseLanguage === "en"
           ? "Stopped."
           : responseLanguage === "uk" ? "Зупинився." : "Остановился.";
         conversationStore.addMessage({ role: "assistant", content: acknowledgement });
@@ -1430,7 +1439,9 @@ export class VoicePerceiver extends BasePerceiver {
         response = n8nResult.speech;
 
         // Perform robot gesture/pose if requested by assistant
-        if (n8nResult.pose === "dance") {
+        if (n8nResult.pose === "cat_play") {
+          void startCatPlayMode();
+        } else if (n8nResult.pose === "dance") {
           void performLooiDance("random").catch(() => undefined);
         } else if (n8nResult.pose === "nod") {
           void performLooiHeadGesture("nod", 1).catch(() => undefined);
@@ -1439,6 +1450,15 @@ export class VoicePerceiver extends BasePerceiver {
         } else if (n8nResult.pose === "sleep") {
           void enterRobotSleepMode("voice").catch(() => undefined);
         }
+
+        // Reproducir sonido de R2-D2 antes de la síntesis de voz (TTS)
+        const soundToPlay = n8nResult.sound || (
+          n8nResult.pose === "dance" ? "laugh" :
+          n8nResult.pose === "happy" ? "happy" :
+          n8nResult.pose === "cat_play" ? "alert" :
+          "chirp"
+        );
+        await playR2D2Sound(soundToPlay).catch(() => undefined);
       } catch (n8nError) {
         console.warn("[VoicePerceiver] N8N query failed:", n8nError);
         response = "No he podido conectar con tu asistente n8n. Comprueba que el servidor esté activo.";
@@ -1953,6 +1973,11 @@ export class VoicePerceiver extends BasePerceiver {
     });
 
     try {
+      if (command.kind === "cat_play") {
+        void startCatPlayMode();
+        return { ok: true, message: "¡A jugar con el gato! Modo persecución activado." };
+      }
+
       if (command.kind === "sleep") {
         await enterRobotSleepMode("voice");
         return { ok: true, message: "Спокойной ночи." };

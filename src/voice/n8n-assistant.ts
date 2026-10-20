@@ -3,7 +3,8 @@ import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
 export type N8nAssistantResponse = {
   success: boolean;
   speech: string;
-  pose?: "happy" | "dance" | "nod" | "look_here" | "sleep" | string;
+  pose?: "happy" | "dance" | "nod" | "look_here" | "sleep" | "cat_play" | string;
+  sound?: "happy" | "chirp" | "curious" | "laugh" | "alert" | string;
 };
 
 export const DEFAULT_N8N_URL = "https://n8n.uxia.es/webhook/looi-assistant";
@@ -65,14 +66,17 @@ export async function askN8nAssistant(
         parsed.text ||
         raw;
       const pose = parsed.pose || "nod";
+      const sound = parsed.sound;
       recordDiagnosticEvent("assistant", "n8n-response-success", {
         speechLength: String(speech).length,
         pose,
+        sound,
       });
       return {
         success: true,
         speech: typeof speech === "string" ? speech : JSON.stringify(speech),
         pose,
+        sound,
       };
     } catch {
       recordDiagnosticEvent("assistant", "n8n-response-raw-text", {
