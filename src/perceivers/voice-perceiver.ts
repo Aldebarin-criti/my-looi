@@ -45,8 +45,8 @@ import { playR2D2Sound } from "../voice/r2d2-sounds";
 import { startCatPlayMode, stopCatPlayMode, isCatPlayActive } from "../games/cat-chaser";
 
 const LISTENING_START_TIMEOUT_MS = 5000;
-const MAX_LISTENING_DURATION_MS = 27_000;
-const FOLLOW_UP_WINDOW_MS = 30_000;
+const MAX_LISTENING_DURATION_MS = 6_000;
+const FOLLOW_UP_WINDOW_MS = 15_000;
 const FOLLOW_UP_RESTART_SETTLE_MS = 60;
 const ATTENTION_REACTION_MS = 140;
 const PROCESSING_BARGE_IN_ARM_DELAY_MS = 750;
@@ -62,10 +62,10 @@ const FRESH_LAUNCH_HEALTH_POLL_MS = 80;
 // first capture transient cannot be copied into the Realtime preroll.
 const FRESH_LAUNCH_PCM_STABLE_MS = 1000;
 const FRESH_LAUNCH_PCM_MAX_AGE_MS = 250;
-const LONG_UTTERANCE_MIN_MS = 1800;
-const LONG_UTTERANCE_ENDPOINT_GRACE_MS = 900;
-const VERY_LONG_UTTERANCE_MIN_MS = 6000;
-const VERY_LONG_UTTERANCE_ENDPOINT_GRACE_MS = 1600;
+const LONG_UTTERANCE_MIN_MS = 800;
+const LONG_UTTERANCE_ENDPOINT_GRACE_MS = 500;
+const VERY_LONG_UTTERANCE_MIN_MS = 3500;
+const VERY_LONG_UTTERANCE_ENDPOINT_GRACE_MS = 800;
 const SESSION_PERSISTENCE_BARRIER_MS = 350;
 const SESSION_PERSISTENCE_REQUEST_TIMEOUT_MS = 5000;
 const SPEAKER_SAMPLE_RATE = 16000;
@@ -1186,7 +1186,13 @@ export class VoicePerceiver extends BasePerceiver {
       // does not get to cut words out of the STT payload. Preserve the complete
       // capture exactly as v1.1.19-style conversation did. This intentionally
       // prefers recognition reliability over shaving silence from follow-up audio.
-      const sttSamples = this.speechSamplesBuffer.slice();
+      // Optimización crítica de velocidad: recortar el buffer de audio a un máximo
+      // de 6 segundos. Whisper Tiny en CPU móvil tarda segundos innecesarios por cada
+      // bloque extra de silencio.
+      const MAX_STT_SAMPLES = SPEAKER_SAMPLE_RATE * 6;
+      const sttSamples = this.speechSamplesBuffer.length > MAX_STT_SAMPLES
+        ? this.speechSamplesBuffer.slice(-MAX_STT_SAMPLES)
+        : this.speechSamplesBuffer.slice();
       if (wasFollowUpTurn) {
         recordDiagnosticEvent("stt", "follow-up-audio-preserved", {
           capturedDurationMs: Math.round((this.speechSamplesBuffer.length / SPEAKER_SAMPLE_RATE) * 1000),
@@ -1458,7 +1464,8 @@ export class VoicePerceiver extends BasePerceiver {
           n8nResult.pose === "cat_play" ? "alert" :
           "chirp"
         );
-        await playR2D2Sound(soundToPlay).catch(() => undefined);
+        // Reproducir sonido de R2-D2 en paralelo sin bloquear la síntesis de voz (TTS)
+        void playR2D2Sound(soundToPlay).catch(() => undefined);
       } catch (n8nError) {
         console.warn("[VoicePerceiver] N8N query failed:", n8nError);
         response = "No he podido conectar con tu asistente n8n. Comprueba que el servidor esté activo.";

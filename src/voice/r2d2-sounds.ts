@@ -41,8 +41,12 @@ export async function playR2D2Sound(soundKey: R2D2SoundKey | string): Promise<vo
       const done = () => {
         if (settled) return;
         settled = true;
+        clearTimeout(safetyTimeout);
         resolve();
       };
+      // Timeout de seguridad: nunca bloquear mas de 1.2 segundos
+      const safetyTimeout = setTimeout(() => done(), 1200);
+
       player.addListener("playbackStatusUpdate", (status: AudioStatus) => {
         if (status.didJustFinish || status.error) {
           done();

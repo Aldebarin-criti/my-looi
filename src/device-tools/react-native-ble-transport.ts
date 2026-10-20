@@ -467,6 +467,7 @@ export async function scanLooiRobotCandidates(options: {
 
     return await new Promise<ScannedLooiRobot[]>((resolve, reject) => {
       const candidates = new Map<string, ScannedLooiRobot>();
+      const otherNamedDevices = new Map<string, ScannedLooiRobot>();
       let settled = false;
       const finish = (callback: () => void) => {
         if (settled) return;
@@ -474,7 +475,13 @@ export async function scanLooiRobotCandidates(options: {
         void manager.stopDeviceScan().finally(callback);
       };
       const timeout = setTimeout(() => {
-        finish(() => resolve([...candidates.values()].sort(compareScannedRobots)));
+        if (candidates.size > 0) {
+          finish(() => resolve([...candidates.values()].sort(compareScannedRobots)));
+        } else {
+          // Si no se encontro ningun dispositivo con 'looi' en el nombre,
+          // devolver los otros dispositivos Bluetooth encontrados cerca para que el usuario pueda elegirlo.
+          finish(() => resolve([...otherNamedDevices.values()].sort(compareScannedRobots)));
+        }
       }, scanTimeoutMs);
 
       manager
@@ -490,8 +497,12 @@ export async function scanLooiRobotCandidates(options: {
               finish(() => reject(error));
               return;
             }
-            if (!device || !isLikelyLooiRobot(device, robotName)) return;
-            candidates.set(device.id, toScannedRobot(device));
+            if (!device) return;
+            if (isLikelyLooiRobot(device, robotName)) {
+              candidates.set(device.id, toScannedRobot(device));
+            } else if (device.name || device.localName) {
+              otherNamedDevices.set(device.id, toScannedRobot(device));
+            }
           },
         )
         .catch((error) => {
@@ -507,19 +518,26 @@ export async function scanLooiRobotCandidates(options: {
 async function requestAndroidBluetoothPermissions(): Promise<void> {
   if (Platform.OS !== "android") return;
 
-  const permissions =
-    Number(Platform.Version) >= 31
-      ? [
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        ]
-      : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+  const isAndroid12Plus = Number(Platform.Version) >= 31;
+  const permissions = isAndroid12Plus
+    ? [
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ]
+    : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
 
   const result = await PermissionsAndroid.requestMultiple(permissions);
-  const denied = permissions.filter((permission) => result[permission] !== PermissionsAndroid.RESULTS.GRANTED);
-  if (denied.length > 0) {
-    throw new Error(`Bluetooth permissions denied: ${denied.join(", ")}`);
+  if (isAndroid12Plus) {
+    const scanGranted = result[PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN] === PermissionsAndroid.RESULTS.GRANTED;
+    const connectGranted = result[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED;
+    if (!scanGranted || !connectGranted) {
+      throw new Error("Permisos de Bluetooth necesarios denegados (BLUETOOTH_SCAN o BLUETOOTH_CONNECT).");
+    }
+  } else {
+    if (result[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] !== PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error("Permiso de ubicacion necesario para escanear Bluetooth en esta version de Android.");
+    }
   }
 }
 
@@ -568,9 +586,9 @@ function shortUuid(uuid: string): string {
 }
 
 function isLikelyLooiRobot(device: Device, robotName: string): boolean {
-  const advertisedName = device.name ?? device.localName ?? "";
-  if (advertisedName === robotName) return true;
-  if (advertisedName.toLowerCase().includes("looi")) return true;
+  const advertisedName = (device.name ?? device.localName ?? "").toLowerCase();
+  if (advertisedName.includes("looi") || advertisedName.includes("r2d2") || advertisedName.includes("robot")) return true;
+  if (robotName && advertisedName.includes(robotName.toLowerCase())) return true;
   return Boolean(device.serviceUUIDs?.some((uuid) => uuid.toLowerCase() === LOOI_SERVICE_UUID));
 }
 
