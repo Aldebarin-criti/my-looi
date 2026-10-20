@@ -1,5 +1,6 @@
 import { enterRobotSleepMode } from "../core/sleep-mode";
 import { recordDiagnosticEvent } from "../diagnostics/diagnostic-log";
+import { startCatPlayMode } from "../games/cat-chaser";
 import {
   moveLooi,
   performLooiDance,
@@ -82,14 +83,21 @@ function acknowledgementFor(command: RealtimePhysicalCommand, ok: boolean): stri
     if (language === "uk") return value.degrees === 180 ? "Розвернувся." : value.direction === "left" ? "Повернув ліворуч." : "Повернув праворуч.";
     return value.degrees === 180 ? "Развернулся." : value.direction === "left" ? "Повернул налево." : "Повернул направо.";
   }
-  if (value.direction === "stop") {
-    if (language === "es") return "Parado.";
-    return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : "Остановился.";
+  if (value.kind === "cat_play") {
+    if (language === "es") return "¡Modo juego con gatos activado!";
+    return language === "en" ? "Cat play mode!" : language === "uk" ? "Гра з котами!" : "Игра с кошками!";
   }
-  if (language === "es") return value.direction === "forward" ? "Avanzado." : "Retrocedido.";
-  if (language === "en") return value.direction === "forward" ? "Moved forward." : "Moved backward.";
-  if (language === "uk") return value.direction === "forward" ? "Проїхав уперед." : "Проїхав назад.";
-  return value.direction === "forward" ? "Проехал вперёд." : "Проехал назад.";
+  if (value.kind === "move") {
+    if (value.direction === "stop") {
+      if (language === "es") return "Parado.";
+      return language === "en" ? "Stopped." : language === "uk" ? "Зупинився." : "Остановился.";
+    }
+    if (language === "es") return value.direction === "forward" ? "Avanzado." : "Retrocedido.";
+    if (language === "en") return value.direction === "forward" ? "Moved forward." : "Moved backward.";
+    if (language === "uk") return value.direction === "forward" ? "Проїхав уперед." : "Проїхав назад.";
+    return value.direction === "forward" ? "Проехал вперёд." : "Проехал назад.";
+  }
+  return "";
 }
 
 /**
@@ -116,19 +124,23 @@ export async function executeRealtimePhysicalCommand(
       const command = parsed.command;
       if (command.kind === "sleep") {
         await enterRobotSleepMode("voice");
+      } else if (command.kind === "cat_play") {
+        void startCatPlayMode();
       } else if (command.kind === "gesture") {
         await performLooiHeadGesture(command.gesture, command.count);
       } else if (command.kind === "dance") {
         await performLooiDance("random");
       } else if (command.kind === "turn") {
         await turnLooi(command.direction, command.degrees);
-      } else if (command.direction === "stop") {
-        await stopLooiMotion("realtime-pcm-explicit-stop");
-      } else {
-        // Keep Realtime PCM as the sole microphone owner. A short bounded move
-        // preserves the existing cliff/TOF interlocks and avoids continuous
-        // motion that would require handing the microphone to local STOP ASR.
-        await moveLooi(command.direction);
+      } else if (command.kind === "move") {
+        if (command.direction === "stop") {
+          await stopLooiMotion("realtime-pcm-explicit-stop");
+        } else {
+          // Keep Realtime PCM as the sole microphone owner. A short bounded move
+          // preserves the existing cliff/TOF interlocks and avoids continuous
+          // motion that would require handing the microphone to local STOP ASR.
+          await moveLooi(command.direction);
+        }
       }
     }
     const acknowledgement = acknowledgementFor(parsed, true);

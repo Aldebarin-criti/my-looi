@@ -108,7 +108,7 @@ export async function startCatPlayMode(): Promise<void> {
       // Fase D: Pequeña celebración / baile
       if (round % 2 === 1) {
         void playR2D2Sound("laugh");
-        await performLooiDance("twist").catch(() => undefined);
+        await performLooiDance("random").catch(() => undefined);
         await sleep(800, signal);
       }
     }
